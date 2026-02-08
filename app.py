@@ -54,11 +54,15 @@ if not quiz:
 # ===============================
 # 세션 상태 초기화
 # ===============================
-if "started" not in st.session_state:
+def reset_game():
     st.session_state.started = False
     st.session_state.index = 0
     st.session_state.start_time = None
     st.session_state.results = []
+
+
+if "started" not in st.session_state:
+    reset_game()
 
 # ===============================
 # 시작 화면
@@ -72,16 +76,31 @@ if not st.session_state.started:
     st.stop()
 
 # ===============================
-# 게임 종료
+# 게임 종료 화면
 # ===============================
 if st.session_state.index >= len(quiz):
     st.success("🎉 모든 문제를 완료했어요!")
 
-    for q in quiz:
+    st.markdown("## 📊 결과 확인")
+
+    for i, q in enumerate(quiz):
+        correct = st.session_state.results[i]
+        mark = "⭕" if correct else "❌"
+
         answer_line = q["question"].replace(
             "___", f"**{q['answer']}**"
         )
-        st.markdown(f"- **[{q['song']}]** {answer_line}")
+
+        st.markdown(
+            f"""
+**{mark} [{q['song']}]**  
+{answer_line}
+"""
+        )
+
+    if st.button("🔄 처음 화면으로"):
+        reset_game()
+        st.rerun()
 
     st.stop()
 
@@ -110,11 +129,13 @@ st.markdown(f"### 문제 {st.session_state.index + 1} / {len(quiz)}")
 st.markdown(f"**⏱ 남은 시간: {remaining}초**")
 st.markdown(f"### {current['question']}")
 
-# 입력
-answer = st.text_input("정답 입력", key=f"input_{st.session_state.index}")
+answer = st.text_input(
+    "정답 입력",
+    key=f"input_{st.session_state.index}"
+)
 
 # ===============================
-# 제출 버튼
+# 제출
 # ===============================
 if st.button("제출"):
     if answer.strip() == current["answer"]:
@@ -129,7 +150,7 @@ if st.button("제출"):
     st.rerun()
 
 # ===============================
-# 실시간 타이머 갱신
+# 실시간 타이머
 # ===============================
 time.sleep(1)
 st.rerun()
