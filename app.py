@@ -3,7 +3,7 @@ import random
 
 st.set_page_config(page_title="Path of Flover", page_icon="🎵")
 
-st.title("🎵 pathofflover")
+st.title("🎵 Path of Flover")
 st.caption("프로미스나인 가사 단어 맞추기 게임")
 
 # =======================
