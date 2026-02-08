@@ -97,6 +97,7 @@ def reset_game():
     st.session_state.timeout_handled = False
     st.session_state.quiz = []
     st.session_state.mode = None
+    st.session_state.time_limit = 0
 
 
 if "started" not in st.session_state:
