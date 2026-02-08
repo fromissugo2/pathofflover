@@ -1,6 +1,7 @@
 import streamlit as st
 import time
 import os
+import random
 
 # ===============================
 # 기본 설정
@@ -13,8 +14,9 @@ st.set_page_config(
 st.title("🎵 Path of flover")
 st.caption("프로미스나인 가사 단어 맞추기 게임")
 
-QUIZ_FILE = "quiz.txt"
+QUIZ_FILE = "quizeazy.txt"
 TIME_LIMIT = 10  # 초
+QUIZ_COUNT = 10  # 랜덤 출제 개수
 
 # ===============================
 # 문제 로딩
@@ -45,11 +47,17 @@ def load_quiz(file_path):
     return quiz
 
 
-quiz = load_quiz(QUIZ_FILE)
+all_quiz = load_quiz(QUIZ_FILE)
 
-if not quiz:
-    st.error("❗ quiz.txt 파일이 없거나 문제 형식이 올바르지 않습니다")
+if not all_quiz:
+    st.error("❗ quizeazy.txt 파일이 없거나 문제 형식이 올바르지 않습니다")
     st.stop()
+
+# 랜덤 10문제 추출
+quiz = random.sample(
+    all_quiz,
+    min(QUIZ_COUNT, len(all_quiz))
+)
 
 # ===============================
 # 세션 상태 초기화
