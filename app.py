@@ -4,7 +4,7 @@ import time
 
 st.set_page_config(page_title="Path of flover", page_icon="🎵")
 
-st.title("🎵 flover")
+st.title("🎵 Path of flover")
 st.caption("프로미스나인 가사 단어 맞추기 게임")
 
 TIME_LIMIT = 10  # 문제당 제한 시간 (초)
@@ -49,6 +49,10 @@ if "quizzes" not in st.session_state:
     st.session_state.finished = False
     st.session_state.start_time = time.time()
 
+# start_time 방어 (중요)
+if "start_time" not in st.session_state:
+    st.session_state.start_time = time.time()
+
 
 # =======================
 # 게임 종료 화면
@@ -83,11 +87,13 @@ remaining = TIME_LIMIT - elapsed
 st.markdown("### ❓ 문제")
 st.write(quiz["question"])
 
-# 타이머 표시
+# 타이머 UI
 st.progress(max(0, remaining) / TIME_LIMIT)
 st.write(f"⏱ 남은 시간: **{max(0, remaining)}초**")
 
-# 시간 초과 → 다음 문제
+# =======================
+# 시간 초과 처리
+# =======================
 if remaining <= 0:
     st.warning("⏰ 시간 초과! 다음 문제로 넘어갑니다.")
     time.sleep(1)
@@ -101,6 +107,9 @@ if remaining <= 0:
     st.rerun()
 
 
+# =======================
+# 정답 입력
+# =======================
 user_input = st.text_input(
     "빈칸에 들어갈 단어를 입력하세요",
     key="answer_input"
