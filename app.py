@@ -20,6 +20,17 @@ TIME_LIMIT = 10        # 문제당 시간
 QUIZ_COUNT = 10        # 랜덤 출제 개수
 
 # ===============================
+# 유틸
+# ===============================
+def normalize(text: str) -> str:
+    return text.replace(" ", "").lower()
+
+def is_correct(user_input: str, answer_text: str) -> bool:
+    answers = [a.strip() for a in answer_text.split(",")]
+    user = normalize(user_input)
+    return any(user == normalize(a) for a in answers)
+
+# ===============================
 # 문제 로딩
 # ===============================
 def load_quiz(file_path):
@@ -92,14 +103,19 @@ quiz = st.session_state.quiz
 if st.session_state.index >= len(quiz):
     st.success("🎉 모든 문제를 완료했어요!")
 
-    st.markdown("## 📊 결과 확인")
+    correct_count = sum(st.session_state.results)
+    total = len(st.session_state.results)
+
+    st.markdown(f"### 🎯 결과: **{correct_count} / {total}**")
+
+    st.markdown("## 📊 문제별 결과")
 
     for i, q in enumerate(quiz):
         correct = st.session_state.results[i]
         mark = "⭕" if correct else "❌"
 
         answer_line = q["question"].replace(
-            "___", f"**{q['answer']}**"
+            "___", f"**{q['answer'].split(',')[0]}**"
         )
 
         st.markdown(
@@ -127,7 +143,7 @@ elapsed = time.time() - st.session_state.start_time
 remaining = TIME_LIMIT - int(elapsed)
 
 # ===============================
-# 시간 초과 처리 (문제당 1번만!)
+# 시간 초과 처리 (문제당 1번만)
 # ===============================
 if remaining <= 0 and not st.session_state.timeout_handled:
     st.session_state.timeout_handled = True
@@ -145,23 +161,15 @@ st.markdown(f"### 문제 {st.session_state.index + 1} / {len(quiz)}")
 st.markdown(f"**⏱ 남은 시간: {max(0, remaining)}초**")
 st.markdown(f"### {current['question']}")
 
-answer = st.text_input(
-    "정답 입력",
-    key=f"input_{st.session_state.index}"
-)
-
 # ===============================
-# 제출
+# 입력 폼 (엔터 제출)
 # ===============================
 with st.form(key=f"form_{st.session_state.index}", clear_on_submit=True):
-    answer = st.text_input(
-        "정답 입력 (엔터로 제출)",
-        key=f"input_{st.session_state.index}"
-    )
+    answer = st.text_input("정답 입력 (엔터로 제출)")
     submitted = st.form_submit_button("제출")
 
 if submitted:
-    if answer.strip() == current["answer"]:
+    if is_correct(answer, current["answer"]):
         st.success("⭕ 정답!")
         st.session_state.results.append(True)
     else:
@@ -172,4 +180,3 @@ if submitted:
     st.session_state.start_time = time.time()
     st.session_state.timeout_handled = False
     st.rerun()
-
