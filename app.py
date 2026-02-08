@@ -153,7 +153,14 @@ answer = st.text_input(
 # ===============================
 # 제출
 # ===============================
-if st.button("제출"):
+with st.form(key=f"form_{st.session_state.index}", clear_on_submit=True):
+    answer = st.text_input(
+        "정답 입력 (엔터로 제출)",
+        key=f"input_{st.session_state.index}"
+    )
+    submitted = st.form_submit_button("제출")
+
+if submitted:
     if answer.strip() == current["answer"]:
         st.success("⭕ 정답!")
         st.session_state.results.append(True)
@@ -165,3 +172,4 @@ if st.button("제출"):
     st.session_state.start_time = time.time()
     st.session_state.timeout_handled = False
     st.rerun()
+
