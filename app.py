@@ -2,7 +2,9 @@ import streamlit as st
 import time
 import os
 import random
-from streamlit.runtime.scriptrunner import add_script_run_ctx
+
+from streamlit_autorefresh import st_autorefresh
+
 
 # ===============================
 # 기본 설정
@@ -118,7 +120,7 @@ if st.session_state.index >= len(quiz):
 # ===============================
 current = quiz[st.session_state.index]
 
-st.autorefresh(interval=1000, key="timer")
+st_autorefresh(interval=1000, key="timer")
 
 elapsed = time.time() - st.session_state.start_time
 remaining = TIME_LIMIT - int(elapsed)
