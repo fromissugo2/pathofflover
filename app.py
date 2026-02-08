@@ -39,19 +39,36 @@ def load_quiz(file_path="quiz.txt"):
 # =======================
 # 세션 초기화
 # =======================
+if "started" not in st.session_state:
+    st.session_state.started = False
+
 if "quizzes" not in st.session_state:
     all_quizzes = load_quiz()
     random.shuffle(all_quizzes)
-
     st.session_state.quizzes = all_quizzes
     st.session_state.index = 0
     st.session_state.results = []
     st.session_state.finished = False
-    st.session_state.start_time = time.time()
 
-# start_time 방어 (중요)
 if "start_time" not in st.session_state:
-    st.session_state.start_time = time.time()
+    st.session_state.start_time = None
+
+
+# =======================
+# 시작 화면
+# =======================
+if not st.session_state.started:
+    st.markdown("## 🎬 준비되셨나요?")
+    st.write("Start 버튼을 누르면 바로 문제가 시작됩니다.")
+    st.write("⏱ 문제당 제한 시간: **10초**")
+    st.write("❌ 틀리면 즉시 종료됩니다.")
+
+    if st.button("▶ Start"):
+        st.session_state.started = True
+        st.session_state.start_time = time.time()
+        st.rerun()
+
+    st.stop()
 
 
 # =======================
@@ -87,9 +104,12 @@ remaining = TIME_LIMIT - elapsed
 st.markdown("### ❓ 문제")
 st.write(quiz["question"])
 
-# 타이머 UI
-st.progress(max(0, remaining) / TIME_LIMIT)
-st.write(f"⏱ 남은 시간: **{max(0, remaining)}초**")
+# 실시간 타이머 UI
+timer_box = st.empty()
+progress_bar = st.empty()
+
+timer_box.markdown(f"⏱ **남은 시간: {max(0, remaining)}초**")
+progress_bar.progress(max(0, remaining) / TIME_LIMIT)
 
 # =======================
 # 시간 초과 처리
