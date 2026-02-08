@@ -30,6 +30,14 @@ def is_correct(user_input: str, answer_text: str) -> bool:
     user = normalize(user_input)
     return any(user == normalize(a) for a in answers)
 
+def get_result_message(correct_count: int) -> str:
+    if correct_count <= 3:
+        return "😅 뉴비시군요"
+    elif correct_count <= 7:
+        return "😀 가사를 음미하면서 들어보아요"
+    else:
+        return "☘️ 훌륭합니다"
+
 # ===============================
 # 문제 로딩
 # ===============================
@@ -107,6 +115,8 @@ if st.session_state.index >= len(quiz):
     total = len(st.session_state.results)
 
     st.markdown(f"### 🎯 결과: **{correct_count} / {total}**")
+    st.markdown("### 💬 한 줄 평가")
+    st.success(get_result_message(correct_count))
 
     st.markdown("## 📊 문제별 결과")
 
