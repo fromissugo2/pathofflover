@@ -16,7 +16,7 @@ st.title("🎵 Path of flover")
 st.caption("프로미스나인 가사 단어 맞추기 게임")
 
 QUIZ_FILE = "quizeazy.txt"
-TIME_LIMIT = 10        # 문제당 시간
+TIME_LIMIT = 20        # 문제당 시간
 QUIZ_COUNT = 10        # 랜덤 출제 개수
 
 # ===============================
