@@ -2,9 +2,7 @@ import streamlit as st
 import time
 import os
 import random
-
 from streamlit_autorefresh import st_autorefresh
-
 
 # ===============================
 # 기본 설정
@@ -18,8 +16,8 @@ st.title("🎵 Path of flover")
 st.caption("프로미스나인 가사 단어 맞추기 게임")
 
 QUIZ_FILE = "quizeazy.txt"
-TIME_LIMIT = 10  # 초
-QUIZ_COUNT = 10  # 랜덤 출제 개수
+TIME_LIMIT = 10        # 문제당 시간
+QUIZ_COUNT = 10        # 랜덤 출제 개수
 
 # ===============================
 # 문제 로딩
@@ -56,20 +54,19 @@ if not all_quiz:
     st.error("❗ quizeazy.txt 파일이 없거나 문제 형식이 올바르지 않습니다")
     st.stop()
 
-# 랜덤 10문제 추출
-quiz = random.sample(
-    all_quiz,
-    min(QUIZ_COUNT, len(all_quiz))
-)
-
 # ===============================
-# 세션 상태 초기화
+# 세션 초기화
 # ===============================
 def reset_game():
     st.session_state.started = False
     st.session_state.index = 0
     st.session_state.start_time = None
     st.session_state.results = []
+    st.session_state.timeout_handled = False
+    st.session_state.quiz = random.sample(
+        all_quiz,
+        min(QUIZ_COUNT, len(all_quiz))
+    )
 
 
 if "started" not in st.session_state:
@@ -83,8 +80,11 @@ if not st.session_state.started:
     if st.button("▶ 시작"):
         st.session_state.started = True
         st.session_state.start_time = time.time()
+        st.session_state.timeout_handled = False
         st.rerun()
     st.stop()
+
+quiz = st.session_state.quiz
 
 # ===============================
 # 게임 종료 화면
@@ -120,26 +120,29 @@ if st.session_state.index >= len(quiz):
 # ===============================
 current = quiz[st.session_state.index]
 
+# 1초마다 화면 갱신 (문제는 안 넘어감)
 st_autorefresh(interval=1000, key="timer")
 
 elapsed = time.time() - st.session_state.start_time
 remaining = TIME_LIMIT - int(elapsed)
 
 # ===============================
-# 시간 초과 처리
+# 시간 초과 처리 (문제당 1번만!)
 # ===============================
-if remaining <= 0:
+if remaining <= 0 and not st.session_state.timeout_handled:
+    st.session_state.timeout_handled = True
     st.error("❌ 시간 초과!")
     st.session_state.results.append(False)
     st.session_state.index += 1
     st.session_state.start_time = time.time()
+    st.session_state.timeout_handled = False
     st.rerun()
 
 # ===============================
 # 문제 표시
 # ===============================
 st.markdown(f"### 문제 {st.session_state.index + 1} / {len(quiz)}")
-st.markdown(f"**⏱ 남은 시간: {remaining}초**")
+st.markdown(f"**⏱ 남은 시간: {max(0, remaining)}초**")
 st.markdown(f"### {current['question']}")
 
 answer = st.text_input(
@@ -160,8 +163,5 @@ if st.button("제출"):
 
     st.session_state.index += 1
     st.session_state.start_time = time.time()
+    st.session_state.timeout_handled = False
     st.rerun()
-
-# ===============================
-# 실시간 타이머
-# ===============================
