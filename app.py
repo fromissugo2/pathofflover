@@ -1,156 +1,141 @@
 import streamlit as st
-import random
 import time
+import random
 
-st.set_page_config(page_title="Path of flover", page_icon="🎵")
-
-st.title("🎵 Path of flover")
-st.caption("프로미스나인 가사 단어 맞추기 게임")
-
+# ===============================
+# 설정
+# ===============================
 TIME_LIMIT = 10  # 문제당 제한 시간 (초)
 
-# =======================
-# 퀴즈 파일 로드
-# =======================
+st.set_page_config(
+    page_title="Path of flover",
+    page_icon="🎵",
+)
+
+st.title("🎵 Path of flover")
+st.caption("프로미스나인 가사 단어 맞추기 팬메이드 퀴즈")
+
+# ===============================
+# 문제 로드
+# ===============================
 def load_quiz(file_path="quiz.txt"):
     quizzes = []
-    current_song = None
-
     with open(file_path, "r", encoding="utf-8") as f:
+        block = {}
         for line in f:
             line = line.strip()
             if not line:
+                if block:
+                    quizzes.append(block)
+                    block = {}
                 continue
 
-            if line.startswith("[") and line.endswith("]"):
-                current_song = line[1:-1]
-                continue
+            if line.startswith("Q:"):
+                block["question"] = line[2:].strip()
+            elif line.startswith("A:"):
+                block["answer"] = line[2:].strip()
+            elif line.startswith("SONG:"):
+                block["song"] = line[5:].strip()
+            elif line.startswith("FULL:"):
+                block["full"] = line[5:].strip()
 
-            if "|" in line and current_song:
-                question, answer = line.split("|", 1)
-                quizzes.append({
-                    "song": current_song,
-                    "question": question,
-                    "answer": answer.strip()
-                })
+        if block:
+            quizzes.append(block)
+
     return quizzes
 
 
-# =======================
-# 세션 초기화
-# =======================
+# ===============================
+# 세션 상태 초기화
+# ===============================
 if "started" not in st.session_state:
     st.session_state.started = False
 
-if "quizzes" not in st.session_state:
-    all_quizzes = load_quiz()
-    random.shuffle(all_quizzes)
-    st.session_state.quizzes = all_quizzes
+if "quiz" not in st.session_state:
+    st.session_state.quiz = load_quiz()
+    random.shuffle(st.session_state.quiz)
+
+if "index" not in st.session_state:
     st.session_state.index = 0
-    st.session_state.results = []
-    st.session_state.finished = False
 
 if "start_time" not in st.session_state:
     st.session_state.start_time = None
 
+if "finished" not in st.session_state:
+    st.session_state.finished = False
 
-# =======================
+
+# ===============================
 # 시작 화면
-# =======================
+# ===============================
 if not st.session_state.started:
-    st.markdown("## 🎬 준비되셨나요?")
-    st.write("Start 버튼을 누르면 바로 문제가 시작됩니다.")
-    st.write("⏱ 문제당 제한 시간: **10초**")
-    st.write("❌ 틀리면 즉시 종료됩니다.")
-
-    if st.button("▶ Start"):
+    st.info("Start 버튼을 누르면 게임이 시작됩니다")
+    if st.button("▶️ Start"):
         st.session_state.started = True
         st.session_state.start_time = time.time()
         st.rerun()
-
     st.stop()
 
 
-# =======================
-# 게임 종료 화면
-# =======================
-if st.session_state.finished:
-    st.success("🎉 모든 문제를 완료했습니다!")
+# ===============================
+# 종료 처리
+# ===============================
+if st.session_state.index >= len(st.session_state.quiz):
+    st.success("🎉 모든 문제를 맞혔어요!")
 
-    st.markdown("### 📖 정답 공개")
-    for q in st.session_state.results:
-        revealed = q["question"].replace(
-            "___",
-            f"**{q['answer']}**"
-        )
-        st.markdown(f"**🎶 {q['song']}**  \n{revealed}")
+    last = st.session_state.quiz[-1]
+    st.markdown("### 🎶 마지막 문제 정보")
+    st.write(f"**곡명:** {last['song']}")
+    st.write(f"**정답 가사:** {last['full']}")
 
-    if st.button("다시 시작"):
-        for key in list(st.session_state.keys()):
-            del st.session_state[key]
-        st.rerun()
-
+    st.caption("팬메이드 퀴즈 | Path of flover")
     st.stop()
 
 
-# =======================
+# ===============================
 # 현재 문제
-# =======================
-quiz = st.session_state.quizzes[st.session_state.index]
+# ===============================
+q = st.session_state.quiz[st.session_state.index]
 
 elapsed = int(time.time() - st.session_state.start_time)
 remaining = TIME_LIMIT - elapsed
 
-st.markdown("### ❓ 문제")
-st.write(quiz["question"])
-
-# 실시간 타이머 UI
-timer_box = st.empty()
-progress_bar = st.empty()
-
-timer_box.markdown(f"⏱ **남은 시간: {max(0, remaining)}초**")
-progress_bar.progress(max(0, remaining) / TIME_LIMIT)
-
-# =======================
+# ===============================
 # 시간 초과 처리
-# =======================
+# ===============================
 if remaining <= 0:
-    st.warning("⏰ 시간 초과! 다음 문제로 넘어갑니다.")
-    time.sleep(1)
-
+    st.error("❌ 시간 초과!")
     st.session_state.index += 1
     st.session_state.start_time = time.time()
-
-    if st.session_state.index >= len(st.session_state.quizzes):
-        st.session_state.finished = True
-
+    time.sleep(1)
     st.rerun()
 
 
-# =======================
-# 정답 입력
-# =======================
-user_input = st.text_input(
-    "빈칸에 들어갈 단어를 입력하세요",
-    key="answer_input"
-)
+# ===============================
+# 문제 표시
+# ===============================
+st.markdown(f"### 문제 {st.session_state.index + 1}")
+st.markdown(f"**{q['question']}**")
+
+timer_placeholder = st.empty()
+timer_placeholder.markdown(f"⏱ **남은 시간: {remaining}초**")
+
+answer = st.text_input("정답 입력", key=f"input_{st.session_state.index}")
 
 if st.button("제출"):
-    # ❌ 오답 → 즉시 종료
-    if user_input.strip() != quiz["answer"]:
-        st.error("❌ 오답입니다.")
-        st.session_state.finished = True
-        st.rerun()
-
-    # ✅ 정답
+    if answer.strip() == q["answer"]:
+        st.success("⭕ 정답!")
     else:
-        st.success("✅ 정답!")
-        st.session_state.results.append(quiz)
+        st.error("❌ 오답!")
 
-        st.session_state.index += 1
-        st.session_state.start_time = time.time()
+    st.session_state.index += 1
+    st.session_state.start_time = time.time()
+    time.sleep(1)
+    st.rerun()
 
-        if st.session_state.index >= len(st.session_state.quizzes):
-            st.session_state.finished = True
 
-        st.rerun()
+# ===============================
+# 🔥 실시간 타이머 핵심
+# ===============================
+time.sleep(1)
+st.rerun()
