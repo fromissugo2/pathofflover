@@ -15,9 +15,21 @@ st.set_page_config(
 st.title("🎵 Path of flover")
 st.caption("프로미스나인 가사 단어 맞추기 게임")
 
-QUIZ_FILE = "quizeazy.txt"
-TIME_LIMIT = 20        # 문제당 시간
-QUIZ_COUNT = 10        # 랜덤 출제 개수
+# ===============================
+# 모드 설정
+# ===============================
+MODES = {
+    "Easy": {
+        "file": "quizeazy.txt",
+        "time": 20,
+        "count": 10
+    },
+    "Hard": {
+        "file": "quizhard.txt",
+        "time": 15,
+        "count": 20
+    }
+}
 
 # ===============================
 # 유틸
@@ -30,13 +42,21 @@ def is_correct(user_input: str, answer_text: str) -> bool:
     user = normalize(user_input)
     return any(user == normalize(a) for a in answers)
 
-def get_result_message(correct_count: int) -> str:
-    if correct_count <= 3:
-        return "😅 뉴비시군요"
-    elif correct_count <= 7:
-        return "😀 가사를 음미하면서 들어보아요"
-    else:
-        return "☘️ 훌륭합니다"
+def get_result_message(mode: str, correct: int) -> str:
+    if mode == "Easy":
+        if correct <= 3:
+            return "😅 뉴비시군요"
+        elif correct <= 7:
+            return "😀 가사를 음미하면서 들어보아요"
+        else:
+            return "☘ 훌륭합니다"
+    else:  # Hard
+        if correct <= 5:
+            return "😅 자컨 볼 시간은 있고 가사 볼 시간은 없었나요?"
+        elif correct <= 10:
+            return "😀 당신은 상위 10% 플로버입니다!"
+        else:
+            return "☘ 당신은 프로미스나인 고인물!"
 
 # ===============================
 # 문제 로딩
@@ -66,13 +86,6 @@ def load_quiz(file_path):
 
     return quiz
 
-
-all_quiz = load_quiz(QUIZ_FILE)
-
-if not all_quiz:
-    st.error("❗ quizeazy.txt 파일이 없거나 문제 형식이 올바르지 않습니다")
-    st.stop()
-
 # ===============================
 # 세션 초기화
 # ===============================
@@ -82,28 +95,48 @@ def reset_game():
     st.session_state.start_time = None
     st.session_state.results = []
     st.session_state.timeout_handled = False
-    st.session_state.quiz = random.sample(
-        all_quiz,
-        min(QUIZ_COUNT, len(all_quiz))
-    )
+    st.session_state.quiz = []
+    st.session_state.mode = None
 
 
 if "started" not in st.session_state:
     reset_game()
 
 # ===============================
-# 시작 화면
+# 모드 선택 화면
 # ===============================
 if not st.session_state.started:
-    st.info("▶ 시작 버튼을 누르면 게임이 시작됩니다")
+    st.markdown("## 🎮 난이도 선택")
+
+    mode = st.radio(
+        "플레이할 모드를 선택하세요",
+        ["Easy", "Hard"]
+    )
+
     if st.button("▶ 시작"):
+        config = MODES[mode]
+        all_quiz = load_quiz(config["file"])
+
+        if not all_quiz:
+            st.error(f"❗ {config['file']} 파일이 없거나 형식이 올바르지 않습니다")
+            st.stop()
+
+        st.session_state.mode = mode
+        st.session_state.quiz = random.sample(
+            all_quiz,
+            min(config["count"], len(all_quiz))
+        )
+        st.session_state.time_limit = config["time"]
         st.session_state.started = True
         st.session_state.start_time = time.time()
         st.session_state.timeout_handled = False
         st.rerun()
+
     st.stop()
 
 quiz = st.session_state.quiz
+TIME_LIMIT = st.session_state.time_limit
+mode = st.session_state.mode
 
 # ===============================
 # 게임 종료 화면
@@ -116,7 +149,7 @@ if st.session_state.index >= len(quiz):
 
     st.markdown(f"### 🎯 결과: **{correct_count} / {total}**")
     st.markdown("### 💬 한 줄 평가")
-    st.success(get_result_message(correct_count))
+    st.success(get_result_message(mode, correct_count))
 
     st.markdown("## 📊 문제별 결과")
 
@@ -135,7 +168,7 @@ if st.session_state.index >= len(quiz):
 """
         )
 
-    if st.button("🔄 처음 화면으로"):
+    if st.button("🔄 다시 하기"):
         reset_game()
         st.rerun()
 
@@ -146,14 +179,13 @@ if st.session_state.index >= len(quiz):
 # ===============================
 current = quiz[st.session_state.index]
 
-# 1초마다 화면 갱신 (문제는 안 넘어감)
 st_autorefresh(interval=1000, key="timer")
 
 elapsed = time.time() - st.session_state.start_time
 remaining = TIME_LIMIT - int(elapsed)
 
 # ===============================
-# 시간 초과 처리 (문제당 1번만)
+# 시간 초과 처리
 # ===============================
 if remaining <= 0 and not st.session_state.timeout_handled:
     st.session_state.timeout_handled = True
@@ -167,12 +199,12 @@ if remaining <= 0 and not st.session_state.timeout_handled:
 # ===============================
 # 문제 표시
 # ===============================
-st.markdown(f"### 문제 {st.session_state.index + 1} / {len(quiz)}")
+st.markdown(f"### [{mode}] 문제 {st.session_state.index + 1} / {len(quiz)}")
 st.markdown(f"**⏱ 남은 시간: {max(0, remaining)}초**")
 st.markdown(f"### {current['question']}")
 
 # ===============================
-# 입력 폼 (엔터 제출)
+# 입력 폼
 # ===============================
 with st.form(key=f"form_{st.session_state.index}", clear_on_submit=True):
     answer = st.text_input("정답 입력 (엔터로 제출)")
