@@ -16,7 +16,7 @@ st.title("🎵 Path of flover")
 st.caption("프로미스나인 가사 단어 맞추기 게임")
 
 QUIZ_FILE = "quizeazy.txt"
-TIME_LIMIT = 10        # 문제당 시간
+TIME_LIMIT = 10        # 문제당 시간(초)
 QUIZ_COUNT = 10        # 랜덤 출제 개수
 
 # ===============================
@@ -136,7 +136,7 @@ if st.session_state.index >= len(quiz):
 # ===============================
 current = quiz[st.session_state.index]
 
-# 1초마다 화면 갱신 (문제는 안 넘어감)
+# ⏱ 1초마다 화면 갱신 (문제는 안 넘어감)
 st_autorefresh(interval=1000, key="timer")
 
 elapsed = time.time() - st.session_state.start_time
@@ -155,19 +155,16 @@ if remaining <= 0 and not st.session_state.timeout_handled:
     st.rerun()
 
 # ===============================
-# 문제 표시
-# ===============================
-st.markdown(f"### 문제 {st.session_state.index + 1} / {len(quiz)}")
-st.markdown(f"**⏱ 남은 시간: {max(0, remaining)}초**")
-st.markdown(f"### {current['question']}")
-
-# ===============================
-# 입력 폼 (엔터 제출)
+# 🔥 입력 폼을 화면 최상단에 배치
+# (시작 후 클릭 없이 바로 타이핑 가능)
 # ===============================
 with st.form(key=f"form_{st.session_state.index}", clear_on_submit=True):
     answer = st.text_input("정답 입력 (엔터로 제출)")
     submitted = st.form_submit_button("제출")
 
+# ===============================
+# 제출 처리
+# ===============================
 if submitted:
     if is_correct(answer, current["answer"]):
         st.success("⭕ 정답!")
@@ -180,3 +177,10 @@ if submitted:
     st.session_state.start_time = time.time()
     st.session_state.timeout_handled = False
     st.rerun()
+
+# ===============================
+# 문제 정보 표시 (입력창 아래)
+# ===============================
+st.markdown(f"### 문제 {st.session_state.index + 1} / {len(quiz)}")
+st.markdown(f"**⏱ 남은 시간: {max(0, remaining)}초**")
+st.markdown(f"### {current['question']}")
