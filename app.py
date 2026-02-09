@@ -54,7 +54,7 @@ def get_result_message(mode: str, correct: int) -> str:
         if correct <= 5:
             return "😅 자컨 볼 시간은 있고 가사 볼 시간은 없었나요?"
         elif correct <= 10:
-            return "😀 아질 갈 길이 멀군요!"
+            return "😀 이참에 수록곡 복습!"
         else:
             return "☘️ 당신은 프로미스나인 고인물!"
 
