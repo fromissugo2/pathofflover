@@ -104,6 +104,28 @@ if "started" not in st.session_state:
     reset_game()
 
 # ===============================
+# === 추가 ===
+# HARD MODE 명예의 전당 계산 로직
+# ===============================
+def build_hard_hall_of_fame(correct_count: int):
+    """
+    랭킹: 1~6위
+    20→1위, 19→2위, 18→3위, 17→4위, 16→5위, 15→6위
+    기본 6위는 AAA (15)
+    플레이어가 15 이상이면 기존 AAA는 밀려남
+    """
+    hof = {}
+
+    # 기본 6위
+    hof[6] = ("AAA", 15)
+
+    if correct_count >= 15:
+        rank = 21 - correct_count  # 20→1, 15→6
+        hof[rank] = ("YOU", correct_count)
+
+    return hof
+
+# ===============================
 # 모드 선택 화면
 # ===============================
 if not st.session_state.started:
@@ -152,6 +174,27 @@ if st.session_state.index >= len(quiz):
     st.markdown("### 💬 한 줄 평가")
     st.success(get_result_message(mode, correct_count))
 
+    # ===============================
+    # === 추가 ===
+    # 🏆 HARD MODE 명예의 전당 (항상 표시)
+    # ===============================
+    if mode == "Hard":
+        st.markdown("---")
+        st.markdown("## 🏆 HARD MODE 명예의 전당")
+
+        hof = build_hard_hall_of_fame(correct_count)
+
+        for rank in range(1, 7):
+            if rank in hof:
+                name, score = hof[rank]
+                crown = " 👑" if name == "YOU" else ""
+                st.markdown(f"**{rank}위. {name}** — {score}{crown}")
+            else:
+                st.markdown(f"**{rank}위.**")
+
+    # ===============================
+    # 문제별 결과
+    # ===============================
     st.markdown("## 📊 문제별 결과")
 
     for i, q in enumerate(quiz):
