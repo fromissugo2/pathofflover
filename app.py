@@ -50,7 +50,7 @@ def get_result_message(mode: str, correct: int) -> str:
             return "😀 가사를 음미하면서 들어보아요"
         else:
             return "☘️ 훌륭합니다"
-    else:  # Hard
+    else:
         if correct <= 5:
             return "😅 자컨 볼 시간은 있고 가사 볼 시간은 없었나요?"
         elif correct <= 10:
@@ -105,23 +105,31 @@ if "started" not in st.session_state:
 
 # ===============================
 # === 추가 ===
+# 관리자 / 명예의 전당 관리용 세션
+# ===============================
+if "removed_hof_ranks" not in st.session_state:
+    st.session_state.removed_hof_ranks = set()
+
+ADMIN_PASSWORD = st.secrets.get("ADMIN_PASSWORD", "")
+
+# ===============================
+# === 추가 ===
 # HARD MODE 명예의 전당 계산 로직
 # ===============================
 def build_hard_hall_of_fame(correct_count: int):
-    """
-    랭킹: 1~6위
-    20→1위, 19→2위, 18→3위, 17→4위, 16→5위, 15→6위
-    기본 6위는 AAA (15)
-    플레이어가 15 이상이면 기존 AAA는 밀려남
-    """
     hof = {}
 
     # 기본 6위
     hof[6] = ("AAA", 15)
 
     if correct_count >= 15:
-        rank = 21 - correct_count  # 20→1, 15→6
+        rank = 21 - correct_count
         hof[rank] = ("YOU", correct_count)
+
+    # 🔥 운영자가 삭제한 순위 제거
+    for r in list(hof.keys()):
+        if r in st.session_state.removed_hof_ranks:
+            del hof[r]
 
     return hof
 
@@ -175,8 +183,7 @@ if st.session_state.index >= len(quiz):
     st.success(get_result_message(mode, correct_count))
 
     # ===============================
-    # === 추가 ===
-    # 🏆 HARD MODE 명예의 전당 (항상 표시)
+    # 🏆 HARD MODE 명예의 전당
     # ===============================
     if mode == "Hard":
         st.markdown("---")
@@ -191,6 +198,27 @@ if st.session_state.index >= len(quiz):
                 st.markdown(f"**{rank}위. {name}** — {score}{crown}")
             else:
                 st.markdown(f"**{rank}위.**")
+
+        # ===============================
+        # === 추가 ===
+        # 🔐 운영자 전용 관리
+        # ===============================
+        st.markdown("---")
+        st.markdown("### 🔐 운영자 관리")
+
+        admin_input = st.text_input(
+            "관리자 비밀번호",
+            type="password",
+            key="admin_pw"
+        )
+
+        if admin_input == ADMIN_PASSWORD and ADMIN_PASSWORD:
+            st.success("운영자 권한 확인됨")
+
+            for rank in range(1, 7):
+                if st.button(f"❌ {rank}위 닉네임 삭제", key=f"del_rank_{rank}"):
+                    st.session_state.removed_hof_ranks.add(rank)
+                    st.rerun()
 
     # ===============================
     # 문제별 결과
