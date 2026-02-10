@@ -2,6 +2,7 @@ import streamlit as st
 import time
 import os
 import random
+import json
 from streamlit_autorefresh import st_autorefresh
 
 # ===============================
@@ -30,6 +31,32 @@ MODES = {
         "count": 20
     }
 }
+
+# ===============================
+# 명예의 전당 설정
+# ===============================
+HOF_FILE = "hard_hall_of_fame.json"
+HOF_TEST_THRESHOLD = 1   # 🔥 테스트용 (나중에 15로 변경)
+
+
+def load_hof():
+    if not os.path.exists(HOF_FILE):
+        return []
+    with open(HOF_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save_hof(data):
+    with open(HOF_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def add_hof_record(name: str, score: int):
+    hof = load_hof()
+    hof.append({"name": name, "score": score})
+    hof.sort(key=lambda x: x["score"], reverse=True)
+    hof = hof[:10]  # TOP 10 유지
+    save_hof(hof)
 
 # ===============================
 # 유틸
@@ -98,6 +125,7 @@ def reset_game():
     st.session_state.quiz = []
     st.session_state.mode = None
     st.session_state.time_limit = 0
+    st.session_state.hof_saved = False
 
 
 if "started" not in st.session_state:
@@ -152,6 +180,42 @@ if st.session_state.index >= len(quiz):
     st.markdown("### 💬 한 줄 평가")
     st.success(get_result_message(mode, correct_count))
 
+    # ===============================
+    # 🏆 HARD MODE 명예의 전당
+    # ===============================
+    if mode == "Hard" and correct_count >= HOF_TEST_THRESHOLD:
+        st.markdown("---")
+        st.markdown("## 🏆 HARD MODE 명예의 전당")
+
+        if not st.session_state.hof_saved:
+            st.info("축하합니다! 명예의 전당에 기록될 닉네임을 작성해주세요")
+
+            name = st.text_input(
+                "닉네임 입력 (최대 8자)",
+                max_chars=8
+            )
+
+            if st.button("📌 기록하기"):
+                final_name = name.strip() or "ANON"
+                add_hof_record(final_name, correct_count)
+                st.session_state.hof_saved = True
+                st.success("✅ 명예의 전당에 기록되었습니다!")
+                st.rerun()
+
+        hof = load_hof()
+
+        st.markdown("### 🥇 TOP 10")
+        for i in range(10):
+            if i < len(hof):
+                st.markdown(
+                    f"**{i+1}. {hof[i]['name']}** — {hof[i]['score']}"
+                )
+            else:
+                st.markdown(f"**{i+1}.**")
+
+    # ===============================
+    # 문제별 결과
+    # ===============================
     st.markdown("## 📊 문제별 결과")
 
     for i, q in enumerate(quiz):
